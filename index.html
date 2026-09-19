@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Face and Hair — упражнения</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #faf9f6;
+    margin: 0;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+  }
+  h1 { font-size: 20px; color: #333; margin: 0 0 4px 0; }
+  .sub { font-size: 13px; color: #888; margin-bottom: 18px; text-align: center; }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+  .tab-btn {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 8px 18px;
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+    background: #eee;
+    color: #888;
+  }
+  .tab-btn.active { background: #6a4f96; color: #fff; }
+
+  .panel { display: none; width: 100%; max-width: 420px; flex-direction: column; align-items: center; }
+  .panel.active { display: flex; }
+
+  .counter { font-size: 13px; color: #aaa; margin-bottom: 10px; }
+
+  .card {
+    background: #f2f1ec;
+    border-radius: 20px;
+    padding: 24px 20px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 200px;
+  }
+
+  .ru-prompt {
+    font-size: 22px;
+    font-weight: 800;
+    color: #6a4f96;
+    margin-bottom: 6px;
+    text-align: center;
+  }
+  .en-hint { font-size: 12px; color: #aaa; margin-bottom: 16px; }
+
+  .answer-slot {
+    display: flex;
+    gap: 6px;
+    min-height: 46px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .letter-tile {
+    width: 38px;
+    height: 44px;
+    background: #fff;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 800;
+    color: #6a4f96;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    cursor: pointer;
+    user-select: none;
+  }
+  .answer-slot .letter-tile {
+    background: #6a4f96;
+    color: #fff;
+  }
+  .letter-bank {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    min-height: 46px;
+  }
+
+  input.word-input {
+    font-family: inherit;
+    font-size: 20px;
+    font-weight: 700;
+    color: #444;
+    text-align: center;
+    padding: 10px;
+    width: 220px;
+    border-radius: 12px;
+    border: 2px solid #ddd;
+    margin-bottom: 14px;
+  }
+  input.word-input:focus { outline: none; border-color: #6a4f96; }
+
+  .feedback {
+    font-size: 15px;
+    font-weight: 700;
+    height: 22px;
+    margin-bottom: 10px;
+  }
+  .feedback.ok { color: #4caf50; }
+  .feedback.bad { color: #e05555; }
+
+  .controls { display: flex; gap: 10px; margin-top: 16px; }
+  button.action {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 18px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    background: #fff;
+    color: #6a4f96;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  button.action.primary { background: #6a4f96; color: #fff; }
+  button.action:active { transform: scale(0.97); }
+</style>
+</head>
+<body>
+
+<h1>Face and Hair</h1>
+<div class="sub">Два упражнения на новые слова</div>
+
+<div class="tabs">
+  <button class="tab-btn active" id="tabSort">Sort the letters</button>
+  <button class="tab-btn" id="tabWrite">Write the word</button>
+</div>
+
+<!-- SORT PANEL -->
+<div class="panel active" id="panelSort">
+  <div class="counter" id="sortCounter">1 / 14</div>
+  <div class="card">
+    <div class="ru-prompt" id="sortRu">лицо</div>
+    <div class="en-hint">Собери английское слово из букв</div>
+    <div class="answer-slot" id="answerSlot"></div>
+    <div class="letter-bank" id="letterBank"></div>
+    <div class="feedback" id="sortFeedback"></div>
+  </div>
+  <div class="controls">
+    <button class="action" id="sortReset">↺ Сброс</button>
+    <button class="action primary" id="sortCheck">Проверить</button>
+    <button class="action" id="sortNext">Дальше →</button>
+  </div>
+</div>
+
+<!-- WRITE PANEL -->
+<div class="panel" id="panelWrite">
+  <div class="counter" id="writeCounter">1 / 14</div>
+  <div class="card">
+    <div class="ru-prompt" id="writeRu">лицо</div>
+    <div class="en-hint">Напиши слово по-английски</div>
+    <input type="text" class="word-input" id="writeInput" autocomplete="off" placeholder="...">
+    <div class="feedback" id="writeFeedback"></div>
+  </div>
+  <div class="controls">
+    <button class="action primary" id="writeCheck">Проверить</button>
+    <button class="action" id="writeNext">Дальше →</button>
+  </div>
+</div>
+
+<script>
+  const words = [
+    { en: "face",     ru: "лицо" },
+    { en: "ears",     ru: "уши" },
+    { en: "eyes",     ru: "глаза" },
+    { en: "mouth",    ru: "рот" },
+    { en: "nose",     ru: "нос" },
+    { en: "teeth",    ru: "зубы" },
+    { en: "hair",     ru: "волосы" },
+    { en: "curly",    ru: "кудрявые" },
+    { en: "spiky",    ru: "торчащие в разные стороны" },
+    { en: "straight", ru: "прямые" },
+    { en: "wavy",     ru: "волнистые" },
+    { en: "blond",    ru: "светлые (блонд)" },
+    { en: "dark",     ru: "тёмные" },
+    { en: "red",      ru: "рыжие" },
+  ];
+
+  // ---------- SORT ----------
+  let sortIdx = 0;
+  let currentAnswer = [];
+  let bankLetters = [];
+
+  const answerSlot = document.getElementById('answerSlot');
+  const letterBank = document.getElementById('letterBank');
+  const sortRu = document.getElementById('sortRu');
+  const sortCounter = document.getElementById('sortCounter');
+  const sortFeedback = document.getElementById('sortFeedback');
+
+  function shuffleArr(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function loadSortWord() {
+    const w = words[sortIdx];
+    sortRu.textContent = w.ru;
+    sortCounter.textContent = (sortIdx + 1) + " / " + words.length;
+    sortFeedback.textContent = '';
+    currentAnswer = [];
+    bankLetters = shuffleArr(w.en.split(''));
+    renderSort();
+  }
+
+  function renderSort() {
+    answerSlot.innerHTML = '';
+    currentAnswer.forEach((ch, i) => {
+      const t = document.createElement('div');
+      t.className = 'letter-tile';
+      t.textContent = ch;
+      t.addEventListener('click', () => {
+        bankLetters.push(currentAnswer.splice(i, 1)[0]);
+        renderSort();
+      });
+      answerSlot.appendChild(t);
+    });
+    letterBank.innerHTML = '';
+    bankLetters.forEach((ch, i) => {
+      const t = document.createElement('div');
+      t.className = 'letter-tile';
+      t.textContent = ch;
+      t.addEventListener('click', () => {
+        currentAnswer.push(bankLetters.splice(i, 1)[0]);
+        renderSort();
+      });
+      letterBank.appendChild(t);
+    });
+  }
+
+  document.getElementById('sortReset').addEventListener('click', loadSortWord);
+  document.getElementById('sortCheck').addEventListener('click', () => {
+    const w = words[sortIdx];
+    if (currentAnswer.join('') === w.en) {
+      sortFeedback.textContent = 'Верно! 🎉';
+      sortFeedback.className = 'feedback ok';
+    } else {
+      sortFeedback.textContent = 'Пока не то — попробуй ещё';
+      sortFeedback.className = 'feedback bad';
+    }
+  });
+  document.getElementById('sortNext').addEventListener('click', () => {
+    sortIdx = (sortIdx + 1) % words.length;
+    loadSortWord();
+  });
+
+  // ---------- WRITE ----------
+  let writeIdx = 0;
+  const writeRu = document.getElementById('writeRu');
+  const writeCounter = document.getElementById('writeCounter');
+  const writeInput = document.getElementById('writeInput');
+  const writeFeedback = document.getElementById('writeFeedback');
+
+  function loadWriteWord() {
+    const w = words[writeIdx];
+    writeRu.textContent = w.ru;
+    writeCounter.textContent = (writeIdx + 1) + " / " + words.length;
+    writeInput.value = '';
+    writeFeedback.textContent = '';
+  }
+
+  document.getElementById('writeCheck').addEventListener('click', () => {
+    const w = words[writeIdx];
+    const val = writeInput.value.trim().toLowerCase();
+    if (val === w.en) {
+      writeFeedback.textContent = 'Верно! 🎉';
+      writeFeedback.className = 'feedback ok';
+    } else {
+      writeFeedback.textContent = 'Правильно: ' + w.en;
+      writeFeedback.className = 'feedback bad';
+    }
+  });
+  document.getElementById('writeNext').addEventListener('click', () => {
+    writeIdx = (writeIdx + 1) % words.length;
+    loadWriteWord();
+  });
+  writeInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('writeCheck').click();
+  });
+
+  // ---------- TABS ----------
+  const tabSort = document.getElementById('tabSort');
+  const tabWrite = document.getElementById('tabWrite');
+  const panelSort = document.getElementById('panelSort');
+  const panelWrite = document.getElementById('panelWrite');
+
+  tabSort.addEventListener('click', () => {
+    tabSort.classList.add('active');
+    tabWrite.classList.remove('active');
+    panelSort.classList.add('active');
+    panelWrite.classList.remove('active');
+  });
+  tabWrite.addEventListener('click', () => {
+    tabWrite.classList.add('active');
+    tabSort.classList.remove('active');
+    panelWrite.classList.add('active');
+    panelSort.classList.remove('active');
+  });
+
+  loadSortWord();
+  loadWriteWord();
+</script>
+
+</body>
+</html>
